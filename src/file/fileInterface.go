@@ -13,7 +13,7 @@ type FileInterface interface {
 	Copy(string) error
 	Move(string) error
 	Print()
-	Clone() (FileInterface, error)
+	Clone() *FileInterface
 	GetName() string
 	GetPath() string
 	GetExtension() FileExtension
