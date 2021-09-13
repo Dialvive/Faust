@@ -28,20 +28,27 @@ func New(name string, path string, extension FileExtension) *TxtFile {
 func (txtFile *TxtFile) Create() error {
 	if _, err := os.Stat(txtFile.GetPath()); err == nil {
 		if _, err := os.Stat(txtFile.GetFullPath()); err == nil { // file exists
-			return nil
-		} else if os.IsNotExist(err) { // file don't exist
-			_, err := os.Create(txtFile.GetFullPath())
+			return os.ErrExist
+		} else if os.IsNotExist(err) { // file doesn't exist
+			if _, err := os.Create(txtFile.GetFullPath()); err == nil {
+				return txtFile.WriteReplace()
+			}
 			return err
 		} else { // file may or may not exist. See err for details.
 			return err
 		}
 	} else if os.IsNotExist(err) { // parent path doesn't exist
-		err := os.Mkdir(txtFile.GetPath(), 0644)
-		if err != nil {
+		if err := os.Mkdir(txtFile.GetPath(), 0644); err != nil {
 			return err
 		}
-		_, err1 := os.Create(txtFile.GetFullPath())
-		return err1
+		if _, err := os.Create(txtFile.GetFullPath()); err != nil {
+			return err
+		}
+		if txtFile.GetData() != nil {
+			err := txtFile.WriteReplace()
+			return err
+		}
+		return nil
 	} else { // parent path may or may not exist. See err for details.
 		return err
 	}
@@ -53,7 +60,7 @@ func (txtFile *TxtFile) Read() error {
 	if err != nil {
 		return err
 	}
-	data, err1 := ioutil.ReadFile(txtFile.GetPath())
+	data, err1 := ioutil.ReadFile(txtFile.GetFullPath())
 	if err1 != nil {
 		return err1
 	}
@@ -63,12 +70,8 @@ func (txtFile *TxtFile) Read() error {
 
 // WriteReplace writes the File's data to a file at the File's path.
 func (txtFile *TxtFile) WriteReplace() error {
-	err := txtFile.checkFile()
-	if err != nil {
-		return err
-	}
-	err1 := txtFile.WriteReplaceTo(txtFile.GetFullPath())
-	return err1
+	err := txtFile.WriteReplaceTo(txtFile.GetFullPath())
+	return err
 }
 
 // WriteReplaceTo writes the File's data to a file at the given path.
@@ -157,10 +160,10 @@ func (txtFile *TxtFile) Print() {
 }
 
 // Clone returns an identical copy of the File.
-func (txtFile *TxtFile) Clone() *TxtFile {
+func (txtFile *TxtFile) Clone() TxtFile {
 	clone := New(txtFile.GetName(), txtFile.GetPath(), txtFile.GetExtension())
 	clone.SetData(txtFile.GetData())
-	return clone
+	return *clone
 }
 
 // GetName returns the name of this file.
