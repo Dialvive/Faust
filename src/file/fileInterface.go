@@ -22,7 +22,7 @@ type FileInterface interface {
 	SetName(string)
 	SetPath(string)
 	SetExtension(FileExtension)
-	SetData(interface{}) error
+	SetData(interface{})
 }
 
 // File abstract struct for FileInterface

@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-// Concrete File struct for txt files.
+// TxtFile is a File that contains txt data.
 type TxtFile struct {
 	file File
 	data []byte
@@ -56,7 +56,7 @@ func (txtFile *TxtFile) Create() error {
 
 // Read reads a file at the File's path and stores the data.
 func (txtFile *TxtFile) Read() error {
-	err := txtFile.checkFile()
+	err := txtFile.CheckFile()
 	if err != nil {
 		return err
 	}
@@ -69,54 +69,64 @@ func (txtFile *TxtFile) Read() error {
 }
 
 // WriteReplace writes the File's data to a file at the File's path.
+//This method is a wrapper of WriteReplaceTo(txtFile.GetFullPath).
 func (txtFile *TxtFile) WriteReplace() error {
 	err := txtFile.WriteReplaceTo(txtFile.GetFullPath())
 	return err
 }
 
 // WriteReplaceTo writes the File's data to a file at the given path.
+//This method doesn't append the File's extension at the end of the specified
+//path.
 func (txtFile *TxtFile) WriteReplaceTo(path string) error {
-	err := txtFile.checkFile()
-	if err != nil {
+	if err := txtFile.CheckFile(); os.IsNotExist(err) {
+		if err := txtFile.Create(); err != nil {
+			return err
+		}
+		if err := txtFile.WriteAppendTo(path); err != nil {
+			return err
+		}
+	} else if err != nil {
 		return err
 	}
-	err1 := os.WriteFile(path, txtFile.data, 0644)
-	return err1
+	err := os.WriteFile(path, txtFile.data, 0644)
+	return err
 }
 
-// WriteAppend appends the File's data to a file at the File's path.
+// WriteAppend appends the File's data in a new line to a file at the File's path.
+// This method is a wrapper of WriteAppendTo(txtFile.GetFullPath).
 func (txtFile *TxtFile) WriteAppend() error {
-	err := txtFile.checkFile()
-	if err != nil {
-		return err
-	}
-	f, err := os.OpenFile(txtFile.GetFullPath(), os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	_, err1 := f.Write(txtFile.GetData())
-	return err1
+	err := txtFile.WriteAppendTo(txtFile.GetFullPath())
+	return err
 }
 
-// WriteAppendTo appends the File's data to a file at the given path.
+// WriteAppendTo appends the File's data in a new line to a file at the given path.
 func (txtFile *TxtFile) WriteAppendTo(path string) error {
-	err := txtFile.checkFile()
-	if err != nil {
+	if err := txtFile.CheckFile(); err != nil {
 		return err
 	}
 	f, err1 := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0644)
 	if err1 != nil {
 		return err1
 	}
-	defer f.Close()
+	defer func(f *os.File) {
+		_ = f.Close()
+	}(f)
+	aux, err1 := ioutil.ReadFile(txtFile.GetFullPath())
+	if err1 != nil {
+		return err1
+	}
+	if aux != nil {
+
+		txtFile.SetData(append([]byte("\n"), txtFile.GetData()...))
+	}
 	_, err2 := f.Write(txtFile.GetData())
 	return err2
 }
 
 // Delete deletes a file at the File's path.
 func (txtFile *TxtFile) Delete() error {
-	err := txtFile.checkFile()
+	err := txtFile.CheckFile()
 	if err != nil {
 		return err
 	}
@@ -126,7 +136,7 @@ func (txtFile *TxtFile) Delete() error {
 
 // Copy copies the file at the File's path to the given path.
 func (txtFile *TxtFile) Copy(path string) error {
-	err := txtFile.checkFile()
+	err := txtFile.CheckFile()
 	if err != nil {
 		return err
 	}
@@ -134,19 +144,23 @@ func (txtFile *TxtFile) Copy(path string) error {
 	if err1 != nil {
 		return err1
 	}
-	defer fSource.Close()
+	defer func(fSource *os.File) {
+		_ = fSource.Close()
+	}(fSource)
 	fDestination, err2 := os.Create(path)
 	if err2 != nil {
 		return err2
 	}
-	defer fDestination.Close()
+	defer func(fDestination *os.File) {
+		_ = fDestination.Close()
+	}(fDestination)
 	_, err3 := io.Copy(fDestination, fSource)
 	return err3
 }
 
 // Move moves the file at the File's path to the given path.
 func (txtFile *TxtFile) Move(path string) error {
-	err := txtFile.checkFile()
+	err := txtFile.CheckFile()
 	if err != nil {
 		return err
 	}
@@ -207,13 +221,12 @@ func (txtFile *TxtFile) SetExtension(extension FileExtension) {
 }
 
 // SetData replaces the File's data with the given data.
-func (txtFile *TxtFile) SetData(data []byte) error {
+func (txtFile *TxtFile) SetData(data []byte) {
 	txtFile.data = data
-	return nil
 }
 
-// checkFile returns an error if the file is not regular or doesn't exist.
-func (txtFile *TxtFile) checkFile() error {
+// CheckFile returns an error if the file is not regular or doesn't exist.
+func (txtFile *TxtFile) CheckFile() error {
 	fileStat, err := os.Stat(txtFile.GetFullPath())
 	if err != nil {
 		return err
