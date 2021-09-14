@@ -1,1 +1,1 @@
-# Goethe
+# Faust
