@@ -1,0 +1,15 @@
+.idea
+.github
+.gitignore
+LICENCE
+*~
+*.yml
+*.txt
+*.xml
+*.xls
+*.xlsx
+*.csv
+*.json
+*.graphql
+*.sql
+*.zip
