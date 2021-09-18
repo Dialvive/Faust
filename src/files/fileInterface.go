@@ -1,8 +1,8 @@
-package file
+package files
 
-// FileInterface for Files
+// FileInterface is a File interface for writing and reading Files
 type FileInterface interface {
-	New(string, string, FileExtension) *File
+	New(string, string, FileExtension) *interface{}
 	Create() error
 	Read() error
 	WriteReplace(bool) error
@@ -11,7 +11,7 @@ type FileInterface interface {
 	WriteAppendTo(string, bool) error
 	Delete() error
 	Copy(string) error
-	Move(string) error
+	Move(FileInterface) error
 	Print()
 	Clone() *FileInterface
 	GetName() string
@@ -27,7 +27,7 @@ type FileInterface interface {
 
 // File abstract struct for FileInterface
 type File struct {
-	name      string
-	path      string
-	extension FileExtension
+	name string
+	path string
+	FileExtension
 }

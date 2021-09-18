@@ -1,4 +1,4 @@
-package file
+package files
 
 type FileExtension string
 
